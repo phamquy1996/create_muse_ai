@@ -1,0 +1,12 @@
+{
+  "name": "create-muse-ai",
+  "version": "1.0.0",
+  "description": "Muse AI Image Studio - Automated high-resolution image generation tool via Muse.ai session cookie",
+  "main": "server.js",
+  "scripts": {
+    "start": "node server.js"
+  },
+  "dependencies": {
+    "playwright-core": "^1.50.0"
+  }
+}

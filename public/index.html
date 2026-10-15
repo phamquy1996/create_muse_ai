@@ -1,0 +1,1018 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Muse AI Image Studio — Công Cụ Tạo Ảnh Tự Động</title>
+  <style>
+    :root {
+      --bg-base: #0b0d13;
+      --bg-panel: #131722;
+      --bg-card: #1a2030;
+      --bg-input: #0f131d;
+      --border: #262f45;
+      --text-main: #f1f5f9;
+      --text-muted: #94a3b8;
+      --accent: #6366f1;
+      --accent-hover: #4f46e5;
+      --accent-glow: rgba(99, 102, 241, 0.28);
+      --success: #10b981;
+      --warning: #f59e0b;
+      --danger: #ef4444;
+    }
+
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+
+    body {
+      font-family: 'Segoe UI', system-ui, -apple-system, sans-serif;
+      background: var(--bg-base);
+      color: var(--text-main);
+      min-height: 100vh;
+      display: flex;
+      flex-direction: column;
+    }
+
+    /* TOPBAR */
+    .topbar {
+      height: 64px;
+      background: rgba(19, 23, 34, 0.92);
+      backdrop-filter: blur(12px);
+      border-bottom: 1px solid var(--border);
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      padding: 0 24px;
+      position: sticky;
+      top: 0;
+      z-index: 50;
+    }
+
+    .brand {
+      display: flex;
+      align-items: center;
+      gap: 12px;
+      font-weight: 700;
+      font-size: 18px;
+      letter-spacing: -0.3px;
+    }
+
+    .brand-logo {
+      width: 36px;
+      height: 36px;
+      border-radius: 10px;
+      background: linear-gradient(135deg, #6366f1, #ec4899);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      font-size: 20px;
+      box-shadow: 0 4px 14px var(--accent-glow);
+    }
+
+    .status-pill {
+      display: inline-flex;
+      align-items: center;
+      gap: 8px;
+      padding: 6px 14px;
+      border-radius: 999px;
+      font-size: 13px;
+      font-weight: 500;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+    }
+
+    .status-dot {
+      width: 9px;
+      height: 9px;
+      border-radius: 50%;
+      background: var(--warning);
+    }
+    .status-dot.ready {
+      background: var(--success);
+      box-shadow: 0 0 10px var(--success);
+    }
+    .status-dot.generating {
+      background: #38bdf8;
+      box-shadow: 0 0 10px #38bdf8;
+      animation: pulse 1s infinite alternate;
+    }
+    .status-dot.error {
+      background: var(--danger);
+      box-shadow: 0 0 10px var(--danger);
+    }
+
+    @keyframes pulse {
+      from { transform: scale(0.85); opacity: 0.6; }
+      to { transform: scale(1.2); opacity: 1; }
+    }
+
+    .top-actions {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .btn {
+      display: inline-flex;
+      align-items: center;
+      justify-content: center;
+      gap: 7px;
+      padding: 8px 14px;
+      border-radius: 9px;
+      font-size: 13px;
+      font-weight: 600;
+      cursor: pointer;
+      border: 1px solid var(--border);
+      background: var(--bg-card);
+      color: var(--text-main);
+      transition: all 0.15s ease;
+    }
+
+    .btn:hover:not(:disabled) {
+      border-color: #475569;
+      background: #232b3e;
+    }
+
+    .btn:disabled {
+      opacity: 0.55;
+      cursor: not-allowed;
+    }
+
+    .btn-primary {
+      background: linear-gradient(135deg, #6366f1, #8b5cf6);
+      border-color: transparent;
+      color: #fff;
+      box-shadow: 0 4px 16px var(--accent-glow);
+    }
+
+    .btn-primary:hover:not(:disabled) {
+      background: linear-gradient(135deg, #4f46e5, #7c3aed);
+      transform: translateY(-1px);
+    }
+
+    /* MAIN LAYOUT */
+    .workspace {
+      display: grid;
+      grid-template-columns: 400px 1fr;
+      flex: 1;
+      min-height: calc(100vh - 64px);
+    }
+
+    @media (max-width: 980px) {
+      .workspace {
+        grid-template-columns: 1fr;
+      }
+    }
+
+    /* SIDEBAR COMPOSER */
+    .sidebar {
+      background: var(--bg-panel);
+      border-right: 1px solid var(--border);
+      padding: 20px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .mode-tabs {
+      display: grid;
+      grid-template-columns: 1fr 1fr;
+      background: var(--bg-input);
+      padding: 4px;
+      border-radius: 10px;
+      border: 1px solid var(--border);
+    }
+
+    .mode-tab {
+      padding: 8px;
+      text-align: center;
+      font-size: 13px;
+      font-weight: 600;
+      border-radius: 7px;
+      cursor: pointer;
+      color: var(--text-muted);
+      border: none;
+      background: transparent;
+      transition: all 0.15s;
+    }
+
+    .mode-tab.active {
+      background: var(--bg-card);
+      color: var(--text-main);
+      box-shadow: 0 2px 6px rgba(0, 0, 0, 0.25);
+    }
+
+    .field-group {
+      display: flex;
+      flex-direction: column;
+      gap: 7px;
+    }
+
+    .field-label {
+      font-size: 13px;
+      font-weight: 600;
+      color: #cbd5e1;
+      display: flex;
+      justify-content: space-between;
+      align-items: center;
+    }
+
+    textarea.prompt-box {
+      width: 100%;
+      min-height: 130px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      border-radius: 12px;
+      padding: 12px 14px;
+      color: var(--text-main);
+      font-size: 14px;
+      line-height: 1.5;
+      resize: vertical;
+      outline: none;
+      font-family: inherit;
+    }
+
+    textarea.prompt-box:focus {
+      border-color: var(--accent);
+      box-shadow: 0 0 0 3px rgba(99, 102, 241, 0.18);
+    }
+
+    .quick-chips {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 6px;
+    }
+
+    .chip {
+      font-size: 11.5px;
+      padding: 4px 10px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+      cursor: pointer;
+      transition: all 0.15s;
+    }
+
+    .chip:hover {
+      color: var(--text-main);
+      border-color: var(--accent);
+    }
+
+    .ratio-grid {
+      display: grid;
+      grid-template-columns: repeat(4, 1fr);
+      gap: 8px;
+    }
+
+    .ratio-btn {
+      padding: 8px 6px;
+      border-radius: 9px;
+      border: 1px solid var(--border);
+      background: var(--bg-input);
+      color: var(--text-muted);
+      font-size: 12px;
+      font-weight: 600;
+      cursor: pointer;
+      text-align: center;
+      transition: all 0.15s;
+    }
+
+    .ratio-btn.active {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.16);
+      color: #fff;
+    }
+
+    select.select-box {
+      width: 100%;
+      padding: 10px 12px;
+      border-radius: 10px;
+      background: var(--bg-input);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      font-size: 13.5px;
+      outline: none;
+    }
+
+    .upload-zone {
+      border: 1.5px dashed var(--border);
+      border-radius: 12px;
+      padding: 12px;
+      text-align: center;
+      cursor: pointer;
+      background: rgba(15, 19, 29, 0.6);
+      transition: all 0.15s;
+      position: relative;
+    }
+
+    .upload-zone:hover {
+      border-color: var(--accent);
+      background: rgba(99, 102, 241, 0.06);
+    }
+
+    .upload-preview {
+      display: flex;
+      align-items: center;
+      gap: 10px;
+      text-align: left;
+    }
+
+    .upload-preview img {
+      width: 48px;
+      height: 48px;
+      object-fit: cover;
+      border-radius: 8px;
+      border: 1px solid var(--border);
+    }
+
+    .generate-btn {
+      padding: 14px;
+      font-size: 15px;
+      border-radius: 12px;
+      width: 100%;
+    }
+
+    .progress-box {
+      background: rgba(56, 189, 248, 0.08);
+      border: 1px solid rgba(56, 189, 248, 0.3);
+      border-radius: 11px;
+      padding: 12px 14px;
+      font-size: 13px;
+      color: #bae6fd;
+      display: none;
+      flex-direction: column;
+      gap: 6px;
+    }
+
+    .progress-box.active {
+      display: flex;
+    }
+
+    /* GALLERY AREA */
+    .gallery-section {
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 18px;
+    }
+
+    .gallery-header {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      flex-wrap: wrap;
+      gap: 12px;
+    }
+
+    .gallery-title {
+      font-size: 18px;
+      font-weight: 700;
+      display: flex;
+      align-items: center;
+      gap: 10px;
+    }
+
+    .badge-count {
+      font-size: 12px;
+      padding: 3px 10px;
+      border-radius: 999px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-muted);
+    }
+
+    .gallery-grid {
+      display: grid;
+      grid-template-columns: repeat(auto-fill, minmax(270px, 1fr));
+      gap: 18px;
+    }
+
+    .img-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 14px;
+      overflow: hidden;
+      display: flex;
+      flex-direction: column;
+      transition: transform 0.18s ease, border-color 0.18s ease;
+    }
+
+    .img-card:hover {
+      transform: translateY(-3px);
+      border-color: #475569;
+    }
+
+    .img-thumb-wrap {
+      position: relative;
+      width: 100%;
+      aspect-ratio: 1 / 1;
+      background: #090b10;
+      overflow: hidden;
+      cursor: zoom-in;
+    }
+
+    .img-thumb-wrap img {
+      width: 100%;
+      height: 100%;
+      object-fit: cover;
+      transition: transform 0.3s ease;
+    }
+
+    .img-card:hover .img-thumb-wrap img {
+      transform: scale(1.03);
+    }
+
+    .img-res-tag {
+      position: absolute;
+      bottom: 8px;
+      right: 8px;
+      background: rgba(11, 13, 19, 0.82);
+      backdrop-filter: blur(6px);
+      padding: 3px 8px;
+      border-radius: 6px;
+      font-size: 11px;
+      color: #cbd5e1;
+      border: 1px solid rgba(255, 255, 255, 0.12);
+    }
+
+    .img-info {
+      padding: 12px 14px;
+      display: flex;
+      flex-direction: column;
+      gap: 10px;
+      flex: 1;
+      justify-content: space-between;
+    }
+
+    .img-prompt {
+      font-size: 13px;
+      color: #e2e8f0;
+      display: -webkit-box;
+      -webkit-line-clamp: 2;
+      -webkit-box-orient: vertical;
+      overflow: hidden;
+      line-height: 1.45;
+    }
+
+    .img-actions {
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 6px;
+      padding-top: 6px;
+      border-top: 1px solid rgba(255, 255, 255, 0.06);
+    }
+
+    .btn-sm {
+      padding: 5px 10px;
+      font-size: 12px;
+      border-radius: 7px;
+    }
+
+    .empty-state {
+      border: 1px dashed var(--border);
+      border-radius: 16px;
+      padding: 60px 24px;
+      text-align: center;
+      color: var(--text-muted);
+      display: flex;
+      flex-direction: column;
+      align-items: center;
+      gap: 10px;
+    }
+
+    /* MODAL */
+    .modal-backdrop {
+      position: fixed;
+      inset: 0;
+      background: rgba(0, 0, 0, 0.76);
+      backdrop-filter: blur(6px);
+      display: none;
+      align-items: center;
+      justify-content: center;
+      z-index: 100;
+      padding: 20px;
+    }
+
+    .modal-backdrop.open {
+      display: flex;
+    }
+
+    .modal-card {
+      background: var(--bg-panel);
+      border: 1px solid var(--border);
+      border-radius: 16px;
+      width: 100%;
+      max-width: 640px;
+      padding: 24px;
+      display: flex;
+      flex-direction: column;
+      gap: 16px;
+    }
+
+    .lightbox-img {
+      max-width: 92vw;
+      max-height: 85vh;
+      border-radius: 12px;
+      box-shadow: 0 20px 60px rgba(0, 0, 0, 0.7);
+    }
+
+    .toast {
+      position: fixed;
+      bottom: 24px;
+      right: 24px;
+      background: var(--bg-card);
+      border: 1px solid var(--border);
+      color: var(--text-main);
+      padding: 12px 18px;
+      border-radius: 10px;
+      font-size: 13.5px;
+      box-shadow: 0 10px 30px rgba(0, 0, 0, 0.5);
+      z-index: 200;
+      display: none;
+    }
+    .toast.show {
+      display: block;
+    }
+  </style>
+</head>
+<body>
+  <!-- TOPBAR -->
+  <header class="topbar">
+    <div class="brand">
+      <div class="brand-logo">🎨</div>
+      <div>
+        <div>Muse AI Image Studio</div>
+        <div style="font-size: 11.5px; color: var(--text-muted); font-weight: 400;">
+          Tự động hóa tạo ảnh chất lượng gốc qua Cookie Muse.ai
+        </div>
+      </div>
+    </div>
+
+    <div class="status-pill" id="statusPill">
+      <span class="status-dot" id="statusDot"></span>
+      <span id="statusText">Đang kiểm tra kết nối...</span>
+    </div>
+
+    <div class="top-actions">
+      <button class="btn" onclick="syncFromChat()" title="Lấy toàn bộ ảnh đang có trong đoạn chat Muse.ai về máy">
+        🔄 Đồng bộ ảnh từ Chat
+      </button>
+      <button class="btn" id="toggleBrowserBtn" onclick="toggleBrowserMode()" title="Hiện hoặc ẩn cửa sổ Chrome điều khiển Muse.ai">
+        👁️ Hiện Chrome
+      </button>
+      <button class="btn" onclick="openCookieModal()">
+        🔑 Cài đặt Cookie / cURL
+      </button>
+      <button class="btn" onclick="openOutputFolder()">
+        📂 Mở thư mục ảnh
+      </button>
+    </div>
+  </header>
+
+  <!-- WORKSPACE -->
+  <div class="workspace">
+    <!-- SIDEBAR COMPOSER -->
+    <aside class="sidebar">
+      <div class="mode-tabs">
+        <button class="mode-tab active" id="tabSingle" onclick="setMode('single')">✨ Tạo 1 Ảnh</button>
+        <button class="mode-tab" id="tabBatch" onclick="setMode('batch')">📑 Tạo Hàng Loạt</button>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span id="promptLabel">Mô tả bức ảnh bạn muốn tạo (Prompt)</span>
+          <span style="font-size: 11.5px; color: var(--text-muted);" id="promptHint">Tiếng Việt hoặc Tiếng Anh</span>
+        </div>
+        <textarea
+          id="promptInput"
+          class="prompt-box"
+          placeholder="Ví dụ: Một chú mèo phi hành gia đang ngồi uống cà phê trên mặt trăng, ánh sáng điện ảnh 8k..."
+        ></textarea>
+
+        <div class="quick-chips">
+          <span class="chip" onclick="useQuickPrompt('A glowing neon lotus flower floating on dark crystal water at night, cinematic lighting')">🌸 Hoa sen Neon</span>
+          <span class="chip" onclick="useQuickPrompt('A cute chubby pig wearing red plaid shirt and denim overalls standing on a farm, Pixar 3D style')">🐷 Chú lợn nông dân 3D</span>
+          <span class="chip" onclick="useQuickPrompt('Cyberpunk street food stall in Hanoi in the rain, neon signs, ultra detailed photorealistic')">🍜 Phố cổ Cyberpunk</span>
+          <span class="chip" onclick="useQuickPrompt('Portrait of a samurai cat wearing golden armor in cherry blossom forest, digital art')">🐱 Mèo Samurai</span>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">Tỷ lệ khung hình</div>
+        <div class="ratio-grid">
+          <button class="ratio-btn active" data-ratio="auto" onclick="selectRatio('auto', this)">Tự động</button>
+          <button class="ratio-btn" data-ratio="1:1" onclick="selectRatio('1:1', this)">1:1 Vuông</button>
+          <button class="ratio-btn" data-ratio="16:9" onclick="selectRatio('16:9', this)">16:9 Ngang</button>
+          <button class="ratio-btn" data-ratio="9:16" onclick="selectRatio('9:16', this)">9:16 Dọc</button>
+        </div>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">Phong cách nghệ thuật (Style)</div>
+        <select id="styleSelect" class="select-box">
+          <option value="default">Mặc định (Tự nhiên theo mô tả)</option>
+          <option value="photorealistic 8k ultra detailed">Chân thực sắc nét (Photorealistic 8K)</option>
+          <option value="cinematic movie scene, dramatic lighting">Điện ảnh (Cinematic Lighting)</option>
+          <option value="3D Pixar Disney animation">Hoạt hình 3D Pixar / Disney</option>
+          <option value="anime Makoto Shinkai">Anime Nhật Bản (Makoto Shinkai)</option>
+          <option value="cyberpunk neon futuristic">Cyberpunk Neon Tương Lai</option>
+          <option value="classic oil painting masterpiece">Tranh sơn dầu nghệ thuật</option>
+        </select>
+      </div>
+
+      <div class="field-group">
+        <div class="field-label">
+          <span>Ảnh đính kèm tham chiếu (Tùy chọn)</span>
+          <span id="clearRefBtn" style="font-size: 11.5px; color: #f87171; cursor: pointer; display: none;" onclick="clearReferenceImage()">✕ Xóa ảnh</span>
+        </div>
+        <input type="file" id="refFileInput" accept="image/*" style="display: none;" onchange="handleFileSelect(event)" />
+        <div class="upload-zone" id="uploadZone" onclick="document.getElementById('refFileInput').click()">
+          <div id="uploadPlaceholder" style="font-size: 12.5px; color: var(--text-muted);">
+            📎 Bấm để đính kèm ảnh gốc (nếu muốn biến đổi / tham chiếu bố cục)
+          </div>
+          <div id="uploadPreview" class="upload-preview" style="display: none;">
+            <img id="refPreviewImg" src="" alt="Preview" />
+            <div style="overflow: hidden;">
+              <div id="refFileName" style="font-size: 12.5px; font-weight: 600; white-space: nowrap; overflow: hidden; text-overflow: ellipsis;"></div>
+              <div style="font-size: 11px; color: var(--text-muted);">Sẽ gửi kèm câu lệnh lên Muse.ai</div>
+            </div>
+          </div>
+        </div>
+      </div>
+
+      <button class="btn btn-primary generate-btn" id="generateBtn" onclick="handleGenerate()">
+        🚀 Tạo Ảnh Ngay (Ctrl + Enter)
+      </button>
+
+      <div class="progress-box" id="progressBox">
+        <div style="display: flex; justify-content: space-between; font-weight: 600;">
+          <span id="progressTitle">Đang tạo ảnh trên Muse.ai...</span>
+          <span id="progressTimer">0s</span>
+        </div>
+        <div id="progressSub" style="font-size: 12px; color: #94a3b8;">
+          Đang gửi lệnh qua kết nối WebSocket Noise...
+        </div>
+      </div>
+    </aside>
+
+    <!-- MAIN GALLERY -->
+    <main class="gallery-section">
+      <div class="gallery-header">
+        <div class="gallery-title">
+          <span>🖼️ Kho Ảnh Đã Tạo</span>
+          <span class="badge-count" id="imageCountBadge">0 ảnh</span>
+        </div>
+        <div style="font-size: 12.5px; color: var(--text-muted);">
+          Ảnh được tự động lưu bản gốc độ phân giải cao vào <code>muse-studio/outputs/</code>
+        </div>
+      </div>
+
+      <div id="galleryContainer" class="gallery-grid"></div>
+    </main>
+  </div>
+
+  <!-- MODAL CẬP NHẬT COOKIE / CURL -->
+  <div class="modal-backdrop" id="cookieModal">
+    <div class="modal-card">
+      <div style="display: flex; justify-content: space-between; align-items: center;">
+        <h3 style="font-size: 17px;">🔑 Cập nhật Cookie hoặc lệnh cURL Muse.ai</h3>
+        <button class="btn btn-sm" onclick="closeCookieModal()">✕ Đóng</button>
+      </div>
+      <div style="font-size: 13px; color: var(--text-muted); line-height: 1.5;">
+        Bạn có thể dán trực tiếp <b>toàn bộ lệnh Copy as cURL (bash hoặc cmd)</b> từ tab Network (F12) của trang <code>https://muse.ai</code>, hoặc chỉ dán chuỗi Cookie. Hệ thống sẽ tự động tách lấy <code>hatch_sess</code>, <code>hatch_gw</code>, <code>hatch_vml</code>.
+      </div>
+      <textarea
+        id="cookieInputBox"
+        class="prompt-box"
+        style="min-height: 160px; font-family: Consolas, monospace; font-size: 12px;"
+        placeholder="Dán lệnh curl --url 'https://muse.ai/...' hoặc chuỗi cookie datr=...; hatch_sess=... vào đây"
+      ></textarea>
+      <div style="display: flex; justify-content: flex-end; gap: 10px;">
+        <button class="btn" onclick="closeCookieModal()">Hủy</button>
+        <button class="btn btn-primary" id="saveCookieBtn" onclick="saveNewCookie()">💾 Lưu & Kết Nối Lại</button>
+      </div>
+    </div>
+  </div>
+
+  <!-- LIGHTBOX XEM ẢNH LỚN -->
+  <div class="modal-backdrop" id="lightboxModal" onclick="closeLightbox()">
+    <img id="lightboxImg" class="lightbox-img" src="" alt="Preview" onclick="event.stopPropagation()" />
+  </div>
+
+  <div class="toast" id="toastBox"></div>
+
+  <script>
+    let currentMode = 'single';
+    let selectedRatio = 'auto';
+    let refImageBase64 = null;
+    let refImageName = null;
+    let timerInterval = null;
+
+    function showToast(msg) {
+      const t = document.getElementById('toastBox');
+      t.textContent = msg;
+      t.classList.add('show');
+      setTimeout(() => t.classList.remove('show'), 3800);
+    }
+
+    function setMode(mode) {
+      currentMode = mode;
+      document.getElementById('tabSingle').classList.toggle('active', mode === 'single');
+      document.getElementById('tabBatch').classList.toggle('active', mode === 'batch');
+      const promptInput = document.getElementById('promptInput');
+      if (mode === 'batch') {
+        document.getElementById('promptLabel').textContent = 'Danh sách Prompt (Mỗi dòng 1 bức ảnh)';
+        promptInput.placeholder = 'Dòng 1: Một ngôi nhà gỗ bên hồ nước mùa thu\nDòng 2: Phi hành gia cưỡi cá voi bay giữa ngân hà\nDòng 3: Chú chó Shiba mặc giáp hiệp sĩ...';
+      } else {
+        document.getElementById('promptLabel').textContent = 'Mô tả bức ảnh bạn muốn tạo (Prompt)';
+        promptInput.placeholder = 'Ví dụ: Một chú mèo phi hành gia đang ngồi uống cà phê trên mặt trăng, ánh sáng điện ảnh 8k...';
+      }
+    }
+
+    function selectRatio(ratio, btn) {
+      selectedRatio = ratio;
+      document.querySelectorAll('.ratio-btn').forEach(b => b.classList.remove('active'));
+      btn.classList.add('active');
+    }
+
+    function useQuickPrompt(text) {
+      const box = document.getElementById('promptInput');
+      if (currentMode === 'batch' && box.value.trim()) {
+        box.value = box.value.trim() + '\n' + text;
+      } else {
+        box.value = text;
+      }
+      box.focus();
+    }
+
+    function handleFileSelect(e) {
+      const file = e.target.files[0];
+      if (!file) return;
+      const reader = new FileReader();
+      reader.onload = () => {
+        refImageBase64 = reader.result;
+        refImageName = file.name;
+        document.getElementById('refPreviewImg').src = refImageBase64;
+        document.getElementById('refFileName').textContent = file.name;
+        document.getElementById('uploadPlaceholder').style.display = 'none';
+        document.getElementById('uploadPreview').style.display = 'flex';
+        document.getElementById('clearRefBtn').style.display = 'inline';
+      };
+      reader.readAsDataURL(file);
+    }
+
+    function clearReferenceImage() {
+      refImageBase64 = null;
+      refImageName = null;
+      document.getElementById('refFileInput').value = '';
+      document.getElementById('uploadPlaceholder').style.display = 'block';
+      document.getElementById('uploadPreview').style.display = 'none';
+      document.getElementById('clearRefBtn').style.display = 'none';
+    }
+
+    async function pollStatus() {
+      try {
+        const res = await fetch('/api/status');
+        const data = await res.json();
+        const dot = document.getElementById('statusDot');
+        const txt = document.getElementById('statusText');
+        const toggleBtn = document.getElementById('toggleBrowserBtn');
+
+        dot.className = 'status-dot ' + (data.status || 'starting');
+        txt.textContent = data.statusText || 'Đang kết nối...';
+        toggleBtn.textContent = data.headless ? '👁️ Hiện Chrome' : '🙈 Ẩn Chrome';
+      } catch (_) {}
+    }
+
+    async function loadGallery() {
+      try {
+        const res = await fetch('/api/images');
+        const data = await res.json();
+        const images = data.images || [];
+        document.getElementById('imageCountBadge').textContent = `${images.length} ảnh`;
+        const container = document.getElementById('galleryContainer');
+
+        if (images.length === 0) {
+          container.innerHTML = `
+            <div class="empty-state" style="grid-column: 1 / -1;">
+              <div style="font-size: 36px;">✨</div>
+              <div style="font-size: 15px; font-weight: 600; color: var(--text-main);">Chưa có bức ảnh nào</div>
+              <div>Hãy nhập mô tả bên trái và bấm <b>Tạo Ảnh Ngay</b>, hoặc bấm <b>Đồng bộ ảnh từ Chat</b>.</div>
+            </div>
+          `;
+          return;
+        }
+
+        container.innerHTML = images.map(img => {
+          const kb = Math.round((img.size || 0) / 1024);
+          const safePrompt = (img.prompt || '').replace(/"/g, '&quot;').replace(/</g, '&lt;');
+          return `
+            <div class="img-card">
+              <div class="img-thumb-wrap" onclick="openLightbox('${img.url}')">
+                <img src="${img.url}" alt="${safePrompt}" loading="lazy" />
+                <span class="img-res-tag">${img.width || '?'}×${img.height || '?'} • ${kb}KB</span>
+              </div>
+              <div class="img-info">
+                <div class="img-prompt" title="${safePrompt}">${safePrompt}</div>
+                <div class="img-actions">
+                  <div style="display: flex; gap: 6px;">
+                    <a class="btn btn-sm btn-primary" href="${img.url}" download="${img.filename}" style="text-decoration: none;">
+                      ⬇️ Tải về
+                    </a>
+                    <button class="btn btn-sm" onclick="copyPromptText('${encodeURIComponent(img.prompt || '')}')">
+                      📋 Copy
+                    </button>
+                  </div>
+                  <button class="btn btn-sm" style="color: #f87171;" onclick="deleteImage('${img.filename}')">
+                    🗑️
+                  </button>
+                </div>
+              </div>
+            </div>
+          `;
+        }).join('');
+      } catch (err) {
+        console.error(err);
+      }
+    }
+
+    async function handleGenerate() {
+      const rawPrompt = document.getElementById('promptInput').value.trim();
+      if (!rawPrompt) {
+        showToast('⚠️ Vui lòng nhập câu lệnh mô tả ảnh (Prompt)!');
+        document.getElementById('promptInput').focus();
+        return;
+      }
+
+      const style = document.getElementById('styleSelect').value;
+      const prompts = currentMode === 'batch'
+        ? rawPrompt.split('\n').map(l => l.trim()).filter(Boolean)
+        : [rawPrompt];
+
+      const btn = document.getElementById('generateBtn');
+      const pBox = document.getElementById('progressBox');
+      const pTitle = document.getElementById('progressTitle');
+      const pSub = document.getElementById('progressSub');
+      const pTimer = document.getElementById('progressTimer');
+
+      btn.disabled = true;
+      pBox.classList.add('active');
+
+      let startSec = Date.now();
+      clearInterval(timerInterval);
+      timerInterval = setInterval(() => {
+        pTimer.textContent = `${Math.floor((Date.now() - startSec) / 1000)}s`;
+      }, 500);
+
+      try {
+        for (let i = 0; i < prompts.length; i++) {
+          const p = prompts[i];
+          startSec = Date.now();
+          pTitle.textContent = prompts.length > 1
+            ? `Đang tạo ảnh ${i + 1}/${prompts.length}...`
+            : 'Đang tạo ảnh trên Muse.ai...';
+          pSub.textContent = `Prompt: "${p.slice(0, 65)}${p.length > 65 ? '...' : ''}"`;
+
+          const res = await fetch('/api/generate', {
+            method: 'POST',
+            headers: { 'Content-Type': 'application/json' },
+            body: JSON.stringify({
+              prompt: p,
+              aspectRatio: selectedRatio,
+              style,
+              referenceImageBase64: refImageBase64,
+              referenceImageName: refImageName,
+            }),
+          });
+
+          const data = await res.json();
+          if (!res.ok || !data.ok) {
+            throw new Error(data.error || 'Lỗi không xác định khi tạo ảnh');
+          }
+
+          showToast(`✅ Đã tạo xong ảnh (${data.image.width}×${data.image.height})!`);
+          await loadGallery();
+        }
+      } catch (err) {
+        showToast('❌ ' + err.message);
+      } finally {
+        clearInterval(timerInterval);
+        btn.disabled = false;
+        pBox.classList.remove('active');
+        pollStatus();
+      }
+    }
+
+    async function syncFromChat() {
+      showToast('🔄 Đang đồng bộ ảnh từ đoạn chat Muse.ai...');
+      try {
+        const res = await fetch('/api/sync-history', { method: 'POST' });
+        const data = await res.json();
+        if (data.ok) {
+          await loadGallery();
+          showToast(`✅ Đã đồng bộ ${data.count} ảnh từ lịch sử chat!`);
+        } else {
+          showToast('❌ ' + (data.error || 'Lỗi đồng bộ'));
+        }
+      } catch (err) {
+        showToast('❌ ' + err.message);
+      }
+    }
+
+    async function toggleBrowserMode() {
+      showToast('🔄 Đang chuyển chế độ hiển thị trình duyệt Chrome...');
+      try {
+        const res = await fetch('/api/toggle-browser', { method: 'POST' });
+        const data = await res.json();
+        showToast(data.message || 'Đã chuyển chế độ');
+        setTimeout(pollStatus, 1000);
+      } catch (err) {
+        showToast('❌ ' + err.message);
+      }
+    }
+
+    async function openOutputFolder() {
+      await fetch('/api/open-folder', { method: 'POST' });
+      showToast('📂 Đã mở thư mục chứa ảnh trên Windows Explorer!');
+    }
+
+    function openCookieModal() {
+      document.getElementById('cookieModal').classList.add('open');
+    }
+
+    function closeCookieModal() {
+      document.getElementById('cookieModal').classList.remove('open');
+    }
+
+    async function saveNewCookie() {
+      const val = document.getElementById('cookieInputBox').value.trim();
+      if (!val) {
+        showToast('⚠️ Vui lòng dán lệnh cURL hoặc chuỗi Cookie!');
+        return;
+      }
+      const btn = document.getElementById('saveCookieBtn');
+      btn.disabled = true;
+      btn.textContent = 'Đang kiểm tra Cookie...';
+      try {
+        const res = await fetch('/api/cookie', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ cookieInput: val }),
+        });
+        const data = await res.json();
+        if (!res.ok || !data.ok) {
+          throw new Error(data.error || 'Cookie không hợp lệ');
+        }
+        showToast('✅ ' + data.message);
+        closeCookieModal();
+        document.getElementById('cookieInputBox').value = '';
+        pollStatus();
+      } catch (err) {
+        showToast('❌ ' + err.message);
+      } finally {
+        btn.disabled = false;
+        btn.textContent = '💾 Lưu & Kết Nối Lại';
+      }
+    }
+
+    function openLightbox(url) {
+      document.getElementById('lightboxImg').src = url;
+      document.getElementById('lightboxModal').classList.add('open');
+    }
+
+    function closeLightbox() {
+      document.getElementById('lightboxModal').classList.remove('open');
+    }
+
+    function copyPromptText(encoded) {
+      const text = decodeURIComponent(encoded);
+      navigator.clipboard.writeText(text);
+      showToast('📋 Đã copy câu lệnh Prompt!');
+    }
+
+    async function deleteImage(filename) {
+      if (!confirm('Bạn có chắc muốn xóa bức ảnh này?')) return;
+      await fetch(`/api/images/${encodeURIComponent(filename)}`, { method: 'DELETE' });
+      loadGallery();
+      showToast('🗑️ Đã xóa ảnh.');
+    }
+
+    document.getElementById('promptInput').addEventListener('keydown', e => {
+      if ((e.ctrlKey || e.metaKey) && e.key === 'Enter') {
+        e.preventDefault();
+        handleGenerate();
+      }
+    });
+
+    pollStatus();
+    loadGallery();
+    setInterval(pollStatus, 2500);
+    setInterval(loadGallery, 6000);
+  </script>
+</body>
+</html>
